@@ -12,22 +12,13 @@ jobs:
     env:
       IMAGE_NAME: sample-react-app
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: ${{ env.IMAGE_NAME }}
+      steps:
+        - name: Building Image
+          run: echo "Building Image"
 
   dev-deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: dev
     steps:
       - name: Deploying Application to Dev
         run: echo "Deploying application to Dev..."
@@ -36,7 +27,7 @@ jobs:
     needs: dev-deploy
     runs-on: ubuntu-latest
     environment:
-      name: dev-approval
+      name: dev
     steps:
       - name: Waiting for manual approval for Dev
         run: echo "Awaiting manual approval for Dev"
@@ -71,7 +62,6 @@ jobs:
   uat-deploy:
     needs: uat-promotional-approval
     runs-on: ubuntu-latest
-    environment: uat
     steps:
       - name: Deploying Application to UAT
         run: echo "Deploying application to UAT..."
@@ -80,13 +70,13 @@ jobs:
     needs: uat-deploy
     runs-on: ubuntu-latest
     environment:
-      name: uat-approval
+      name: uat
     steps:
       - name: Waiting for manual approval for Uat
         run: echo "Awaiting manual approval for Uat"
 
   uat-rollback:
-    needs: dev-approval
+    needs: uat-approval
     if: failure() || cancelled()
     runs-on: ubuntu-latest
     steps:
@@ -115,7 +105,6 @@ jobs:
   prod-deploy:
     needs: uat-promotional-approval
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Deploying Application to Prod
         run: echo "Deploying application to Production..."
