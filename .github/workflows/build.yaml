@@ -24,7 +24,7 @@ jobs:
           push: false
           tags: ${{ env.IMAGE_NAME }}
 
-  deploy-dev:
+  dev-deploy:
     needs: build
     runs-on: ubuntu-latest
     environment: dev
@@ -32,21 +32,90 @@ jobs:
       - name: Deploying Application to Dev
         run: echo "Deploying application to Dev..."
 
-  approval-dev:
-    needs: deploy-dev
+  dev-approval:
+    needs: dev-deploy
     runs-on: ubuntu-latest
     environment:
-      name: dev
-      url: https://your-dev-environment-url.example.com
+      name: dev-approval
     steps:
       - name: Waiting for manual approval for Dev
         run: echo "Awaiting manual approval for Dev"
 
-  rollback-dev:
-    needs: approval-dev
-    if: failure() || cancelled() # Rollback on rejection or cancellation
+  dev-rollback:
+    needs: dev-approval
+    if: failure() || cancelled()
     runs-on: ubuntu-latest
     steps:
       - name: Rollback Dev deployment
         run: |
           echo "Rolling back Dev deployment..."
+
+  uat-promotional-approval:
+    needs: dev-approval
+    runs-on: ubuntu-latest
+    environment:
+      name: uat
+    steps:
+      - name: Waiting for manual approval for Uat
+        run: echo "Awaiting manual approval for Uat"
+
+  end-at-dev:
+    needs: uat-promotional-approval
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - name: End Pipeline
+        run: |
+          echo "Ending Pipeline at Dev..."
+
+  uat-deploy:
+    needs: uat-promotional-approval
+    runs-on: ubuntu-latest
+    environment: uat
+    steps:
+      - name: Deploying Application to UAT
+        run: echo "Deploying application to UAT..."
+
+  uat-approval:
+    needs: uat-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: uat-approval
+    steps:
+      - name: Waiting for manual approval for Uat
+        run: echo "Awaiting manual approval for Uat"
+
+  uat-rollback:
+    needs: dev-approval
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback Dev deployment
+        run: |
+          echo "Rolling back Dev deployment..."
+
+  prod-promotional-approval:
+    needs: uat-approval
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - name: Waiting for manual approval for Prod
+        run: echo "Awaiting manual approval for Prod"
+
+  end-at-uat:
+    needs: prod-promotional-approval
+    if: failure() || cancelled()
+    runs-on: ubuntu-latest
+    steps:
+      - name: End Pipeline
+        run: |
+          echo "Ending Pipeline at Uat..."
+
+  prod-deploy:
+    needs: uat-promotional-approval
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploying Application to Prod
+        run: echo "Deploying application to Production..."
