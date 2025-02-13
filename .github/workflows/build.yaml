@@ -33,7 +33,7 @@ jobs:
 
   dev-rollback:
     needs: dev-approval
-    if: ${{ needs.dev-approval.result == 'cancelled' }}
+    if: always() && needs.dev-approval.conclusion == 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: Rollback Dev deployment
@@ -51,7 +51,7 @@ jobs:
 
   end-at-dev:
     needs: uat-promotional-approval
-    if: ${{ needs.uat-promotional-approval.result == 'cancelled' }}
+    if: always() && needs.uat-promotional-approval.result == 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: End Pipeline
@@ -76,7 +76,7 @@ jobs:
 
   uat-rollback:
     needs: uat-approval
-    if: ${{ needs.uat-approval.result == 'cancelled' }}
+    if: always() && needs.uat-approval.conclusion == 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: Rollback Uat deployment
@@ -94,7 +94,7 @@ jobs:
 
   end-at-uat:
     needs: prod-promotional-approval
-    if: ${{ needs.prod-promotional-approval.result == 'cancelled' }}
+    if: always() && needs.prod-promotional-approval.result == 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: End Pipeline
@@ -119,7 +119,7 @@ jobs:
 
   prod-rollback:
     needs: prod-approval
-    if: ${{ needs.prod-approval.result == 'cancelled' }}
+    if: always() && needs.prod-approval.conclusion == 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: Rollback Prod deployment
