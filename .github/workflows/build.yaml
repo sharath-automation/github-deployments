@@ -37,17 +37,5 @@ jobs:
     runs-on: ubuntu-latest
     environment: dev
     steps:
-      - name: Prompt for Dev Approval (Yes/No)
+      - name: Waiting for manual approval in GitHub UI for Dev
         uses: actions/github-script@v7
-        with:
-          script: |
-            const approval = '${{ github.event.inputs.approval || "no" }}';
-            if (approval !== 'yes') {
-              core.setFailed('Approval not granted. Initiating rollback.');
-            }
-
-      - name: Rollback Dev if Not Approved
-        if: failure()
-        run: |
-          echo "Rolling back Dev deployment..."
-          # Add rollback commands here
