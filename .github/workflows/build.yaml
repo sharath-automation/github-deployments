@@ -33,14 +33,14 @@ jobs:
         run: echo "Deploying application to Dev..."
 
   approval-dev:
-  needs: deploy-dev
-  runs-on: ubuntu-latest
-  environment:
-    name: dev
-    url: https://your-dev-environment-url.example.com
-  steps:
-    - name: Waiting for manual approval for Dev
-      run: echo "Awaiting manual approval for Dev"
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: https://your-dev-environment-url.example.com
+    steps:
+      - name: Waiting for manual approval for Dev
+        run: echo "Awaiting manual approval for Dev"
 
   rollback-dev:
     needs: approval-dev
