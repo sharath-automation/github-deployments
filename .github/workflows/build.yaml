@@ -12,9 +12,8 @@ jobs:
     env:
       IMAGE_NAME: sample-react-app
     steps:
-      steps:
-        - name: Building Image
-          run: echo "Building Image"
+      - name: Building Image
+        run: echo "Building Image"
 
   dev-deploy:
     needs: build
