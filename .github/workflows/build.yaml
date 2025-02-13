@@ -132,4 +132,4 @@ jobs:
     steps:
       - name: Deployment Success
         run: |
-          echo "Deployyment completed..."
+          echo "Deployment completed..."
