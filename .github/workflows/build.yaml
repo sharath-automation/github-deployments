@@ -33,18 +33,20 @@ jobs:
         run: echo "Deploying application to Dev..."
 
   approval-dev:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    environment: dev
-    steps:
-      - name: Waiting for manual approval in GitHub UI for Dev
-        uses: actions/github-script@v7
-
-rollback-dev:
-  needs: approval-dev
-  if: failure() || cancelled() # Rollback on rejection or cancellation
+  needs: deploy-dev
   runs-on: ubuntu-latest
+  environment:
+    name: dev
+    url: https://your-dev-environment-url.example.com
   steps:
-    - name: Rollback Dev deployment
-      run: |
-        echo "Rolling back Dev deployment..."
+    - name: Waiting for manual approval for Dev
+      run: echo "Awaiting manual approval for Dev"
+
+  rollback-dev:
+    needs: approval-dev
+    if: failure() || cancelled() # Rollback on rejection or cancellation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback Dev deployment
+        run: |
+          echo "Rolling back Dev deployment..."
