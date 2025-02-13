@@ -125,3 +125,11 @@ jobs:
       - name: Rollback Prod deployment
         run: |
           echo "Rolling back Prod deployment..."
+
+  deployment-completed:
+    needs: prod-approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Success
+        run: |
+          echo "Deployyment completed..."
