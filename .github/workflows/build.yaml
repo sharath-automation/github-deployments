@@ -9,11 +9,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      rollback_version: ${{ steps.get_version.outputs.version }}
     env:
       IMAGE_NAME: sample-react-app
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+      - name: Get Rollback Version
+        id: get_version
+        run: |
+          VERSION=$(cat .rollback_tag)
+          echo "Rollback version is $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: Building Image
         run: echo "Building Image"
 
@@ -73,7 +81,7 @@ jobs:
     steps:
       - name: Rollback Prod Deployment
         run: |
-          VERSION=$(cat .rollback_tag)
+          VERSION=${{ needs.build.outputs.rollback_version }}
           echo "Rolling back Production environment to version $VERSION"
 
   manual-rollback:
@@ -84,5 +92,5 @@ jobs:
         uses: actions/checkout@v3
       - name: Manual Rollback
         run: |
-          VERSION=$(cat .rollback_tag)
+          VERSION=${{ needs.build.outputs.rollback_version }}
           echo "Manually rolling back to version $VERSION"
