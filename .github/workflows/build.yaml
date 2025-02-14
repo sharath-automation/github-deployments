@@ -5,6 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      rollback:
+        description: 'Manual rollback (uat/prod)'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -22,24 +27,6 @@ jobs:
       - name: Deploying Application to Dev
         run: echo "Deploying application to Dev..."
 
-  dev-approval:
-    needs: dev-deploy
-    runs-on: ubuntu-latest
-    environment:
-      name: dev
-    steps:
-      - name: Waiting for manual approval for Dev
-        run: echo "Awaiting manual approval for Dev"
-
-  dev-rollback:
-    needs: dev-approval
-    if: always() && needs.dev-approval.conclusion == 'cancelled'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Rollback Dev deployment
-        run: |
-          echo "Rolling back Dev deployment..."
-
   uat-promotional-approval:
     needs: dev-approval
     runs-on: ubuntu-latest
@@ -51,7 +38,7 @@ jobs:
 
   end-at-dev:
     needs: uat-promotional-approval
-    if: always() && needs.uat-promotional-approval.result == 'cancelled'
+    if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: End Pipeline
@@ -64,24 +51,12 @@ jobs:
     steps:
       - name: Deploying Application to UAT
         run: echo "Deploying application to UAT..."
-
-  uat-approval:
-    needs: uat-deploy
-    runs-on: ubuntu-latest
-    environment:
-      name: uat
-    steps:
-      - name: Waiting for manual approval for Uat
-        run: echo "Awaiting manual approval for Uat"
-
-  uat-rollback:
-    needs: uat-approval
-    if: always() && needs.uat-approval.conclusion == 'cancelled'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Rollback Uat deployment
-        run: |
-          echo "Rolling back Uat deployment..."
+    
+    # Auto rollback on UAT failure
+    if: failure()
+    uses: ./.github/actions/rollback
+    with:
+      environment: 'uat' 
 
   prod-promotional-approval:
     needs: uat-approval
@@ -94,7 +69,7 @@ jobs:
 
   end-at-uat:
     needs: prod-promotional-approval
-    if: always() && needs.prod-promotional-approval.result == 'cancelled'
+    if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: End Pipeline
@@ -108,28 +83,16 @@ jobs:
       - name: Deploying Application to Prod
         run: echo "Deploying application to Production..."
 
-  prod-approval:
-    needs: prod-deploy
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-    steps:
-      - name: Waiting for manual approval for Production
-        run: echo "Awaiting manual approval for Production"
+    if: failure()
+      uses: ./.github/actions/rollback
+      with:
+        environment: 'prod'
 
-  prod-rollback:
-    needs: prod-approval
-    if: always() && needs.prod-approval.conclusion == 'cancelled'
+  manual-rollback:
     runs-on: ubuntu-latest
+    if: github.event.inputs.rollback != ''
+    environment: rollback
     steps:
-      - name: Rollback Prod deployment
+      - name: Manual Rollback
         run: |
-          echo "Rolling back Prod deployment..."
-
-  deployment-completed:
-    needs: prod-approval
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deployment Success
-        run: |
-          echo "Deployment completed..."
+          echo "Manually rolling back ${{ github.event.inputs.rollback }} environment"

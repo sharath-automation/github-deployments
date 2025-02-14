@@ -1,0 +1,18 @@
+name: "Rollback Action"
+description: "Rollback to previous version"
+
+inputs:
+  environment:
+    description: "Environment to rollback (uat, prod)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Rollback Deployment
+      run: |
+        echo "Rolling back ${{ inputs.environment }} environment to the previous version"
+        # Example rollback logic:
+        echo "Stopping current containers..."
+        echo "Deploying previous stable version from registry..."
+      shell: bash
