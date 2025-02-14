@@ -5,11 +5,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-    inputs:
-      rollback:
-        description: "Manual rollback (uat/prod)"
-        required: false
-        default: ""
 
 jobs:
   build:
@@ -96,4 +91,5 @@ jobs:
     steps:
       - name: Manual Rollback
         run: |
-          echo "Manually rolling back ${{ github.event.inputs.rollback }} environment"
+          VERSION=$(cat .rollback_version)
+          echo "Manually rolling back $VERSION environment"
