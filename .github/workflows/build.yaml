@@ -49,13 +49,13 @@ jobs:
         run: echo "Deploying application to UAT..."
 
   uat-rollback:
-    needs: uat-deploy
+    needs: [build, uat-deploy]
     if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: Rollback UAT Deployment
         run: |
-          VERSION=$(cat .rollback_tag)
+          VERSION=${{ needs.build.outputs.rollback_version }}
           echo "Rolling back UAT environment to version $VERSION"
 
   prod-approval:
@@ -75,7 +75,7 @@ jobs:
         run: echo "Deploying application to Production..."
 
   prod-rollback:
-    needs: prod-deploy
+    needs: [build, prod-deploy]
     if: failure()
     runs-on: ubuntu-latest
     steps:
@@ -85,6 +85,7 @@ jobs:
           echo "Rolling back Production environment to version $VERSION"
 
   manual-rollback:
+    needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch'
     steps:
