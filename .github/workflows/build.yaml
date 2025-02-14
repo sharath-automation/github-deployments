@@ -41,7 +41,7 @@ jobs:
         run: echo "Deploying application to UAT..."
 
   uat-rollback:
-    needs: [uat-approval, uat-deploy]
+    needs: uat-deploy
     if: failure()
     runs-on: ubuntu-latest
     steps:
