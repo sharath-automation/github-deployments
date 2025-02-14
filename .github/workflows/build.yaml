@@ -1,4 +1,4 @@
-name: Build Docker Image
+name: Build and Promote with Conditional Rejection Handling
 
 on:
   push:
@@ -11,87 +11,132 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       rollback_version: ${{ steps.get_version.outputs.version }}
-    env:
-      IMAGE_NAME: sample-react-app
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
       - name: Get Rollback Version
         id: get_version
         run: |
           VERSION=$(cat .rollback_tag)
           echo "Rollback version is $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Building Image
-        run: echo "Building Image"
+
+      - name: Build Application
+        run: echo "Building application..."
 
   dev-deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: dev
     steps:
-      - name: Deploying Application to Dev
-        run: echo "Deploying application to Dev..."
+      - name: Deploy to dev
+        run: echo "Deploying to dev..."
 
-  uat-approval:
-    needs: [build, dev-deploy]
+  dev-approval:
+    needs: dev-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: is-dev-build-success
+    steps:
+      - name: Build Approval Check
+        run: echo "Waiting for dev build approval..."
+
+  dev-build-rejected:
+    needs: [build, dev-approval]
+    if: failure() # Runs if build approval is rejected
+    runs-on: ubuntu-latest
+    steps:
+      - name: Handle Build Rejection
+        run: |
+          echo "Dev approval rejected. Executing alternative actions..."
+          VERSION=${{ needs.build.outputs.rollback_version }}
+          echo "Deploying back $VERSION"
+
+  uat-promote-approval:
+    needs: [dev-approval]
+    if: success() # Only runs if build approval is successful
+    runs-on: ubuntu-latest
+    environment:
+      name: promote-to-uat
+    steps:
+      - name: Promotion Approval Check
+        run: echo "Waiting for UAT approval..."
+
+  uat-deploy:
+    needs: [uat-promote-approval]
+    if: success()
     runs-on: ubuntu-latest
     environment:
       name: uat
     steps:
-      - name: Waiting for manual approval for UAT
-        run: echo "Awaiting manual approval for UAT"
+      - name: Deploying to UAT Environment
+        run: echo "Deploying the approved build to the UAT environment..."
 
-  uat-deploy:
-    needs: uat-approval
+  uat-approval:
+    needs: uat-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: is-uat-build-success
+    steps:
+      - name: Build Approval Check
+        run: echo "Waiting for build approval..."
+
+  uat-build-rejected:
+    needs: [build, uat-approval]
+    if: failure() # Runs if build approval is rejected
     runs-on: ubuntu-latest
     steps:
-      - name: Deploying Application to UAT
-        run: echo "Deploying application to UAT..."
-
-  uat-rollback:
-    needs: [build, uat-deploy]
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Rollback UAT Deployment
+      - name: Handle Build Rejection
         run: |
+          echo "Build approval rejected. Executing alternative actions..."
           VERSION=${{ needs.build.outputs.rollback_version }}
-          echo "Rolling back UAT environment to version $VERSION"
+          echo "Deploying back $VERSION"
 
-  prod-approval:
-    needs: [uat-deploy]
+  prod-promote-approval:
+    needs: [uat-approval]
+    if: success() # Only runs if build approval is successful
+    runs-on: ubuntu-latest
+    environment:
+      name: promote-to-prod
+    steps:
+      - name: Promotion Approval Check
+        run: echo "Waiting for Prod approval..."
+
+  prod-deploy:
+    needs: [prod-promote-approval]
+    if: success()
     runs-on: ubuntu-latest
     environment:
       name: production
     steps:
-      - name: Waiting for manual approval for Prod
-        run: echo "Awaiting manual approval for Prod"
+      - name: Deploying to UAT Environment
+        run: echo "Deploying the approved build to the UAT environment..."
 
-  prod-deploy:
-    needs: prod-approval
+  prod-approval:
+    needs: prod-deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: is-prod-build-success
+    steps:
+      - name: Build Approval Check
+        run: echo "Waiting for build approval..."
+
+  prod-build-rejected:
+    needs: [build, prod-approval]
+    if: failure() # Runs if build approval is rejected
     runs-on: ubuntu-latest
     steps:
-      - name: Deploying Application to Prod
-        run: echo "Deploying application to Production..."
-
-  prod-rollback:
-    needs: [build, prod-deploy]
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Rollback Prod Deployment
+      - name: Handle Build Rejection
         run: |
+          echo "Build approval rejected. Executing alternative actions..."
           VERSION=${{ needs.build.outputs.rollback_version }}
-          echo "Rolling back Production environment to version $VERSION"
+          echo "Deploying back $VERSION"
 
-  manual-rollback:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+  deployment-complete:
+    needs: [prod-approval]
+    runs-on: ubunut-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Manual Rollback
-        run: |
-          VERSION=${{ needs.build.outputs.rollback_version }}
-          echo "Manually rolling back to version $VERSION"
+      - name: Deployment Complete
+        run: echo "Deployment is completed"
