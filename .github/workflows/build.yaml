@@ -17,16 +17,8 @@ jobs:
       - name: Building Image
         run: echo "Building Image"
 
-  dev-approval:
-    runs-on: ubuntu-latest
-    environment:
-      name: dev
-    steps:
-      - name: Waiting for manual approval for Dev
-        run: echo "Awaiting manual approval for Dev"
-
   dev-deploy:
-    needs: [build, dev-approval]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Deploying Application to Dev
