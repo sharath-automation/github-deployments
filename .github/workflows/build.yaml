@@ -12,49 +12,52 @@ jobs:
     env:
       IMAGE_NAME: sample-react-app
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
       - name: Building Image
         run: echo "Building Image"
 
+  dev-approval:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+      - name: Waiting for manual approval for Dev
+        run: echo "Awaiting manual approval for Dev"
+
   dev-deploy:
-    needs: build
+    needs: [build, dev-approval]
     runs-on: ubuntu-latest
     steps:
       - name: Deploying Application to Dev
         run: echo "Deploying application to Dev..."
 
-  uat-promotional-approval:
-    needs: dev-approval
+  uat-approval:
     runs-on: ubuntu-latest
     environment:
       name: uat
     steps:
-      - name: Waiting for manual approval for Uat
-        run: echo "Awaiting manual approval for Uat"
-
-  end-at-dev:
-    needs: uat-promotional-approval
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: End Pipeline
-        run: |
-          echo "Ending Pipeline at Dev..."
+      - name: Waiting for manual approval for UAT
+        run: echo "Awaiting manual approval for UAT"
 
   uat-deploy:
-    needs: uat-promotional-approval
+    needs: uat-approval
     runs-on: ubuntu-latest
     steps:
       - name: Deploying Application to UAT
         run: echo "Deploying application to UAT..."
 
-    # Auto rollback on UAT failure
+  uat-rollback:
+    needs: uat-deploy
     if: failure()
-    uses: ./.github/actions/rollback
-    with:
-      environment: "uat"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback UAT Deployment
+        run: |
+          VERSION=$(cat .rollback_tag)
+          echo "Rolling back UAT environment to version $VERSION"
 
-  prod-promotional-approval:
-    needs: uat-approval
+  prod-approval:
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -62,34 +65,30 @@ jobs:
       - name: Waiting for manual approval for Prod
         run: echo "Awaiting manual approval for Prod"
 
-  end-at-uat:
-    needs: prod-promotional-approval
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - name: End Pipeline
-        run: |
-          echo "Ending Pipeline at Uat..."
-
   prod-deploy:
-    needs: prod-promotional-approval
+    needs: prod-approval
     runs-on: ubuntu-latest
     steps:
       - name: Deploying Application to Prod
         run: echo "Deploying application to Production..."
 
-    # Auto rollback on UAT failure
+  prod-rollback:
+    needs: prod-deploy
     if: failure()
-    uses: ./.github/actions/rollback
-    with:
-      environment: "uat"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rollback Prod Deployment
+        run: |
+          VERSION=$(cat .rollback_tag)
+          echo "Rolling back Production environment to version $VERSION"
 
   manual-rollback:
     runs-on: ubuntu-latest
-    if: github.event.inputs.rollback != ''
-    environment: rollback
+    if: github.event_name == 'workflow_dispatch'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
       - name: Manual Rollback
         run: |
-          VERSION=$(cat .rollback_version)
-          echo "Manually rolling back $VERSION environment"
+          VERSION=$(cat .rollback_tag)
+          echo "Manually rolling back to version $VERSION"
